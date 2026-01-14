@@ -62,12 +62,7 @@ class PayMongoController(http.Controller):
                 raise Forbidden()
 
             # Keep your existing minimal shape to avoid changing _apply_updates()
-            event_type = data.get('data', {}).get('attributes', {}).get('type')
-            resource = data.get('data', {}).get('attributes', {}).get('data')  # checkout_session/payment resource
-            tx_sudo._process('paymongo', {
-                "event_type": event_type,
-                "checkout_session": resource,
-            })
+            tx_sudo._process('paymongo', data)
 
         # Always acknowledge (same as other providers)
         return request.make_json_response(['accepted'], status=200)

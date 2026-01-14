@@ -204,20 +204,19 @@ class PaymentTransaction(models.Model):
         if self.provider_code != 'paymongo':
             return super()._apply_updates(payment_data)
 
-        event_type = payment_data.get("event_type")
-        session = payment_data.get("checkout_session", {})
-        attrs = session.get("attributes", {})
+        event_attrs = (payment_data.get('data', {}) or {}).get('attributes', {}) or {}
+        event_type = event_attrs.get('type')
+        session = event_attrs.get('data') or {}
 
-        # store checkout session id
-        self.provider_reference = session.get("id") or self.provider_reference
+        # Save checkout session id
+        self.provider_reference = session.get('id') or self.provider_reference
 
         if event_type == "checkout_session.payment.paid":
             self._set_done()
         elif event_type in ("payment.failed", "checkout_session.payment.failed"):
             self._set_error(_("PayMongo reported a failed payment. Please try again."))
         else:
-            # keep it safe: anything else becomes pending
-            if self.state in ("draft",):
+            if self.state == "draft":
                 self._set_pending()
 
     def _paymongo_sanitize_reference(self, ref: str) -> str:
@@ -230,3 +229,67 @@ class PaymentTransaction(models.Model):
         ref = re.sub(r'-{2,}', '-', ref).strip('-')
         # Keep within a reasonable length (defensive)
         return ref[:60] or "odoo"
+    
+    def _extract_amount_data(self, payment_data):
+        res = super()._extract_amount_data(payment_data)
+        if self.provider_code != 'paymongo':
+            return res
+
+        event_attrs = (payment_data.get('data', {}) or {}).get('attributes', {}) or {}
+        session = event_attrs.get('data') or {}
+        session_attrs = (session.get('attributes') or {})
+
+        # 1) Preferred: checkout_session.attributes.payments[0].attributes.amount
+        payments = session_attrs.get('payments') or []
+        if payments:
+            pay_attrs = payments[0].get('attributes') or {}
+            amount_minor = pay_attrs.get('amount')
+            currency = pay_attrs.get('currency') or self.currency_id.name
+            if amount_minor is not None:
+                return {
+                    "amount": self._paymongo_from_minor_currency_units(int(amount_minor)),
+                    "currency_code": currency,
+                    "precision_digits": self.currency_id.decimal_places,
+                }
+
+        # 2) Fallback: payment_intent.attributes.amount
+        pi = session_attrs.get('payment_intent') or {}
+        pi_attrs = pi.get('attributes') or {}
+        amount_minor = pi_attrs.get('amount')
+        if amount_minor is not None:
+            return {
+                "amount": self._paymongo_from_minor_currency_units(int(amount_minor)),
+                "currency_code": pi_attrs.get('currency') or self.currency_id.name,
+                "precision_digits": self.currency_id.decimal_places,
+            }
+
+        # 3) Fallback: sum line_items
+        line_items = session_attrs.get('line_items') or []
+        if line_items:
+            total_minor = 0
+            currency = self.currency_id.name
+            for li in line_items:
+                qty = int(li.get('quantity') or 1)
+                amt = int(li.get('amount') or 0)
+                total_minor += qty * amt
+                currency = li.get('currency') or currency
+
+            return {
+                "amount": self._paymongo_from_minor_currency_units(total_minor),
+                "currency_code": currency,
+                "precision_digits": self.currency_id.decimal_places,
+            }
+
+        # Safety net
+        return {
+            "amount": self.amount,
+            "currency_code": self.currency_id.name,
+            "precision_digits": self.currency_id.decimal_places,
+        }
+    
+    def _paymongo_from_minor_currency_units(self, amount_minor: int):
+        """Convert minor currency units (e.g. centavos) to major (PHP) using currency decimals."""
+        digits = self.currency_id.decimal_places or 2
+        amount = amount_minor / (10 ** digits)
+        return self.currency_id.round(amount)
+
