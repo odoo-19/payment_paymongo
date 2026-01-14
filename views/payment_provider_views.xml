@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="payment_provider_form_paymongo" model="ir.ui.view">
+        <field name="name">PayMongo Provider Form</field>
+        <field name="model">payment.provider</field>
+        <field name="inherit_id" ref="payment.payment_provider_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Follow Odoo 19 pattern: extend provider_credentials -->
+            <group name="provider_credentials" position="inside">
+                <group invisible="code != 'paymongo'">
+
+                    <field
+                        name="paymongo_secret_key"
+                        string="Secret Key"
+                        required="code == 'paymongo' and state != 'disabled'"
+                        password="True"
+                        placeholder="sk_test_..."
+                        groups="base.group_system"
+                    />
+
+                    <field
+                        name="paymongo_webhook_secret"
+                        string="Webhook Secret"
+                        required="code == 'paymongo' and state != 'disabled'"
+                        password="True"
+                        placeholder="whsec_..."
+                        groups="base.group_system"
+                    />
+
+                </group>
+            </group>
+
+        </field>
+    </record>
+
+</odoo>

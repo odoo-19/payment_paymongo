@@ -1,0 +1,60 @@
+<odoo>
+  <data>
+    <!-- explicit list view definition -->
+<!--
+    <record model="ir.ui.view" id="payment_paymongo.list">
+      <field name="name">payment_paymongo list</field>
+      <field name="model">payment_paymongo.payment_paymongo</field>
+      <field name="arch" type="xml">
+        <list>
+          <field name="name"/>
+          <field name="value"/>
+          <field name="value2"/>
+        </list>
+      </field>
+    </record>
+-->
+
+    <!-- actions opening views on models -->
+<!--
+    <record model="ir.actions.act_window" id="payment_paymongo.action_window">
+      <field name="name">payment_paymongo window</field>
+      <field name="res_model">payment_paymongo.payment_paymongo</field>
+      <field name="view_mode">list,form</field>
+    </record>
+-->
+
+    <!-- server action to the one above -->
+<!--
+    <record model="ir.actions.server" id="payment_paymongo.action_server">
+      <field name="name">payment_paymongo server</field>
+      <field name="model_id" ref="model_payment_paymongo_payment_paymongo"/>
+      <field name="state">code</field>
+      <field name="code">
+        action = {
+          "type": "ir.actions.act_window",
+          "view_mode": "list,form",
+          "res_model": model._name,
+        }
+      </field>
+    </record>
+-->
+
+    <!-- Top menu item -->
+<!--
+    <menuitem name="payment_paymongo" id="payment_paymongo.menu_root"/>
+-->
+    <!-- menu categories -->
+<!--
+    <menuitem name="Menu 1" id="payment_paymongo.menu_1" parent="payment_paymongo.menu_root"/>
+    <menuitem name="Menu 2" id="payment_paymongo.menu_2" parent="payment_paymongo.menu_root"/>
+-->
+    <!-- actions -->
+<!--
+    <menuitem name="List" id="payment_paymongo.menu_1_list" parent="payment_paymongo.menu_1"
+              action="payment_paymongo.action_window"/>
+    <menuitem name="Server to list" id="payment_paymongo" parent="payment_paymongo.menu_2"
+              action="payment_paymongo.action_server"/>
+-->
+  </data>
+</odoo>

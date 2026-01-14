@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Minimal redirect form: user will be redirected to PayMongo checkout_url -->
+    <template id="redirect_form">
+        <form t-att-action="api_url" method="get"/>
+    </template>
+
+</odoo>
