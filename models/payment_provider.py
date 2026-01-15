@@ -1,5 +1,5 @@
 # payment_paymongo/models/payment_provider.py
-from odoo import fields, models
+from odoo import api, fields, models
 from odoo.addons.payment.logging import get_payment_logger
 from odoo.addons.payment_paymongo import const
 
@@ -60,3 +60,63 @@ class PaymentProvider(models.Model):
         if self.code == 'paymongo':
             return {'qrph'}
         return super()._get_default_payment_method_codes()
+
+    def _paymongo_ensure_inbound_method_line(self):
+        """Ensure an inbound account.payment.method.line exists for this provider's journal."""
+        PaymentMethodLine = self.env['account.payment.method.line']
+
+        # Detect the provider link field on account.payment.method.line
+        # Common in Odoo 19: payment_provider_id
+        provider_field = None
+        for candidate in ('payment_provider_id', 'provider_id'):
+            if candidate in PaymentMethodLine._fields:
+                provider_field = candidate
+                break
+
+        for provider in self.filtered(lambda p: p.code == 'paymongo' and p.journal_id):
+            journal = provider.journal_id.with_company(provider.company_id)
+
+            inbound_lines = journal.inbound_payment_method_line_ids
+
+            # If the line model supports a provider link field, check existing mapping
+            if provider_field:
+                existing = inbound_lines.filtered(lambda l: getattr(l, provider_field) == provider)
+                if existing:
+                    continue
+            else:
+                # If no provider field exists at all, we can't auto-link like payment_demo.
+                # In that case, only ensure an inbound line exists (manual), and stop here.
+                if inbound_lines:
+                    continue
+
+            # Get inbound manual payment method (safe)
+            manual_method = self.env.ref('account.account_payment_method_manual_in', raise_if_not_found=False)
+            if not manual_method:
+                manual_method = self.env['account.payment.method'].search([
+                    ('payment_type', '=', 'inbound'),
+                    ('code', '=', 'manual'),
+                ], limit=1)
+
+            vals = {
+                'name': "PayMongo",
+                'journal_id': journal.id,
+                'payment_method_id': manual_method.id,
+                'payment_type': 'inbound',
+            }
+            if provider_field:
+                vals[provider_field] = provider.id
+
+            PaymentMethodLine.create(vals)
+
+    def write(self, vals):
+        res = super().write(vals)
+        # When provider gets enabled or journal is set, ensure method line exists.
+        if any(k in vals for k in ('state', 'journal_id')):
+            self._paymongo_ensure_inbound_method_line()
+        return res
+
+    def write(self, vals):
+        res = super().write(vals)
+        if any(k in vals for k in ('state', 'journal_id')) and self:
+            self._paymongo_ensure_inbound_method_line()
+        return res

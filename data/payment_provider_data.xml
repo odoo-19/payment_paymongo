@@ -5,7 +5,7 @@
         <field name="name">PayMongo</field>
         <field name="code">paymongo</field>
         <field name="state">disabled</field>
-        <field name="company_id" ref="base.main_company"/>
+        <!-- <field name="company_id" ref="base.main_company"/> -->
 
         <!-- Required for redirect flows (same as payment_xendit) -->
         <field name="redirect_form_view_id" ref="redirect_form"/>
