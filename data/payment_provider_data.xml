@@ -11,4 +11,9 @@
         <field name="redirect_form_view_id" ref="redirect_form"/>
     </record>
 
+    <record id="payment_provider_paymongo" model="payment.provider">
+        <field name="image_128" type="base64"
+            file="payment_paymongo/static/description/paymongo.png"/>
+    </record>
+
 </odoo>

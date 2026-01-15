@@ -28,6 +28,7 @@ Integrate PayMongo Checkout with Odoo Payments.
     'assets': {
         # No frontend JS needed for hosted checkout (redirect-based)
     },
+    'images': ['static/description/icon.png'],
     'installable': True,
     'application': False,
 }

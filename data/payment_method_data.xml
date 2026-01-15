@@ -8,4 +8,10 @@
         <field name="sequence">30</field>
     </record>
 
+    <record id="payment_method_qrph" model="payment.method">
+        <field name="name">QRPH</field>
+        <field name="code">qrph</field>
+        <field name="image" type="base64" file="payment_paymongo/static/description/qrph.png"/>
+    </record>
+
 </odoo>
