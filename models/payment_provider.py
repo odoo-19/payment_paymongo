@@ -110,13 +110,6 @@ class PaymentProvider(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        # When provider gets enabled or journal is set, ensure method line exists.
-        if any(k in vals for k in ('state', 'journal_id')):
-            self._paymongo_ensure_inbound_method_line()
-        return res
-
-    def write(self, vals):
-        res = super().write(vals)
         if any(k in vals for k in ('state', 'journal_id')) and self:
             self._paymongo_ensure_inbound_method_line()
         return res

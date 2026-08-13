@@ -19,7 +19,7 @@ Integrate PayMongo Checkout with Odoo Payments.
         'account',        # Invoices + currency
     ],
     'data': [
-        'views/payment_paymongo_templates.xml',      # redirect_form template (if you added it)
+        'views/payment_paymongo_templates.xml',      # redirect_form template
         'data/payment_method_data.xml',              # create method (inactive)
         'data/payment_provider_data.xml',            # create provider (disabled by default)
         'data/payment_provider_method_data.xml',     # link provider <-> method

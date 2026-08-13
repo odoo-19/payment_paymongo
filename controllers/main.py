@@ -51,18 +51,32 @@ class PayMongoController(http.Controller):
 
         tx_sudo = request.env['payment.transaction'].sudo()._search_by_reference('paymongo', data)
         if tx_sudo:
+            webhook_secret = tx_sudo.provider_id.paymongo_webhook_secret
+            if not signature_header:
+                _logger.warning(
+                    "Received PayMongo webhook for transaction %s without a Paymongo-Signature "
+                    "header. Check that the webhook endpoint is registered in the PayMongo "
+                    "dashboard and that webhook signing is enabled.", tx_sudo.reference,
+                )
+            if not webhook_secret:
+                _logger.warning(
+                    "Received PayMongo webhook for transaction %s but the provider has no "
+                    "webhook secret configured (field 'Webhook Secret' on the PayMongo provider "
+                    "form). Webhook is rejected.", tx_sudo.reference,
+                )
             # Verify signature using the transaction's provider configuration (core pattern).
-            if not self._verify_paymongo_signature(
-                signature_header,
-                raw_body,
-                tx_sudo.provider_id.paymongo_webhook_secret,
-                data,
-            ):
+            if not self._verify_paymongo_signature(signature_header, raw_body, webhook_secret, data):
                 _logger.warning("Received PayMongo webhook with invalid signature.")
                 raise Forbidden()
 
             # Keep your existing minimal shape to avoid changing _apply_updates()
             tx_sudo._process('paymongo', data)
+        else:
+            _logger.warning(
+                "Received PayMongo webhook with no matching transaction. Check that the checkout "
+                "session metadata carries 'odoo_tx_ref' and that the reference matches an Odoo "
+                "transaction."
+            )
 
         # Always acknowledge (same as other providers)
         return request.make_json_response(['accepted'], status=200)
@@ -92,7 +106,9 @@ class PayMongoController(http.Controller):
         li = parts.get('li')
 
         livemode = payload_json.get('data', {}).get('attributes', {}).get('livemode')
-        their_sig = li if livemode else te
+        # Prefer the signature matching the payload's livemode, but fall back to the other one if
+        # it is empty (some PayMongo webhooks send both).
+        their_sig = (li if livemode else te) or te or li
 
         if not t or not their_sig:
             return False

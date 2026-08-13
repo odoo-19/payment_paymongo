@@ -211,11 +211,12 @@ class PaymentTransaction(models.Model):
         # Save checkout session id
         self.provider_reference = session.get('id') or self.provider_reference
 
-        if event_type == "checkout_session.payment.paid":
+        if event_type in ("checkout_session.payment.paid", "payment.paid"):
             self._set_done()
-        elif event_type in ("payment.failed", "checkout_session.payment.failed"):
+        elif event_type in ("payment.failed", "checkout_session.payment.failed", "payment.expired"):
             self._set_error(_("PayMongo reported a failed payment. Please try again."))
         else:
+            _logger.warning("Unhandled PayMongo webhook event type: %s", event_type)
             if self.state == "draft":
                 self._set_pending()
 
